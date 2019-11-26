@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Vannatech.CoreAudio.Enumerations;
@@ -8,8 +10,69 @@ using Vannatech.CoreAudio.Interfaces;
 
 namespace VolumeMixer_Lib
 {
-    public class AudioSession
+    public class AudioSession : IDisposable, IAudioSessionEvents
     {
+        private IAudioSessionControl ctl;
+        private IAudioSessionControl2 ctl2;
+        private ISimpleAudioVolume volumectl;
+        private ERole role;
+
+        public delegate void DataChangedHandler(AudioSession sender);
+        public event DataChangedHandler OnDataChanged;
+
+        public delegate void DisposedHandler(AudioSession sender);
+        public event DisposedHandler OnDisposed;
+
+        private Guid guid;
+
+        public AudioSession(IAudioSessionControl ctl, ERole role)
+        {
+            this.ctl = ctl;
+            this.ctl2 = ctl as IAudioSessionControl2;
+            this.volumectl = ctl as ISimpleAudioVolume;
+            this.role = role;
+            this.guid = Guid.NewGuid();
+            this.RegisterSessionNotification();
+        }
+
+        public uint ProcessID
+        {
+            get
+            {
+                uint cpid;
+                ctl2.GetProcessId(out cpid);
+                return cpid;
+            }
+        }
+
+        public string AppName
+        {
+            get
+            {
+                string appname;
+                ctl.GetDisplayName(out appname);
+
+                if (appname == "")
+                {
+                    var process = Process.GetProcessById((int)ProcessID);
+                    appname = process.MainWindowTitle;
+
+                    if (appname == "")
+                    {
+                        appname = process.MainModule.FileVersionInfo.FileDescription;
+                    }
+                }
+
+                if (appname.Contains(@"@%SystemRoot%\System32\AudioSrv.Dll"))
+                {
+                    appname = "System";
+                }
+
+                return appname;
+            }
+        }
+        public string AppNameShort { get => AppName.Substring(0, Math.Min(AppName.Length, 20)); }
+
         public enum SessionTypeEnum
         {
             CONSOLE = 0,
@@ -17,103 +80,72 @@ namespace VolumeMixer_Lib
             COMMUNICATION = 2
         }
 
-        public int ProcessID { get; set; }
-        public string AppName { get; set; }
-        public SessionTypeEnum SessionType { get; set; }
-        
-
-        public string AppNameShort { get => AppName.Substring(0, Math.Min(AppName.Length, 20)); }
+        public SessionTypeEnum SessionType
+        {
+            get
+            {
+                switch (role)
+                {
+                    case ERole.eMultimedia:
+                        return SessionTypeEnum.MUTLIMEDIA;
+                    case ERole.eCommunications:
+                        return SessionTypeEnum.COMMUNICATION;
+                    default:
+                        return SessionTypeEnum.CONSOLE;
+                }
+            }
+        }
 
         public float Volume
         {
             get
             {
-                if (SessionType == SessionTypeEnum.MUTLIMEDIA) AudioManager.SetRoleMultimedia();
-                if (SessionType == SessionTypeEnum.COMMUNICATION) AudioManager.SetRoleCommunication();
-                return AudioManager.GetApplicationVolume(ProcessID) ?? 0;
+                float level;
+                volumectl.GetMasterVolume(out level);
+                return level * 100;
             }
             set
             {
-                audioSessionEvent.IsActive = false;
-                if (SessionType == SessionTypeEnum.MUTLIMEDIA) AudioManager.SetRoleMultimedia();
-                if (SessionType == SessionTypeEnum.COMMUNICATION) AudioManager.SetRoleCommunication();
-                AudioManager.SetApplicationVolume(ProcessID, value);
-                audioSessionEvent.IsActive = true;
+                volumectl.SetMasterVolume(value / 100, guid);
             }
         }
 
-        public void Activate()
+        public bool Mute
         {
-            if (isActive) return;
-
-            if (SessionType == SessionTypeEnum.MUTLIMEDIA) AudioManager.SetRoleMultimedia();
-            if (SessionType == SessionTypeEnum.COMMUNICATION) AudioManager.SetRoleCommunication();
-            __session = AudioManager.RegisterSessionNotification(ProcessID, audioSessionEvent);
-
-            isActive = true;
-        }
-        public void DeActivate()
-        {
-            if (!isActive) return;
-
-            if (SessionType == SessionTypeEnum.MUTLIMEDIA) AudioManager.SetRoleMultimedia();
-            if (SessionType == SessionTypeEnum.COMMUNICATION) AudioManager.SetRoleCommunication();
-            AudioManager.UnregisterSessionNotification(__session, audioSessionEvent);
-
-            isActive = false;
-        }
-
-
-        public static List<AudioSession> GetAudioSessions(Func<int> audioChanged)
-        {
-            AudioManager.SetRoleMultimedia();
-            List<KeyValuePair<int, string>> mmProcs = AudioManager.EnumerateAudioSessions();
-            AudioManager.SetRoleCommunication();
-            List<KeyValuePair<int, string>> cmProcs = AudioManager.EnumerateAudioSessions();
-
-            List<AudioSession> sessions = new List<AudioSession>();
-
-            foreach (var item in mmProcs)
+            get
             {
-                sessions.Add(new AudioSession()
-                {
-                    AppName = item.Value,
-                    ProcessID = item.Key,
-                    SessionType = SessionTypeEnum.MUTLIMEDIA,
-                    audioSessionEvent = new AudioSessionEvents()
-                    {
-                        OnVolumeChanged = audioChanged
-                    }
-                });
-
+                bool mute;
+                volumectl.GetMute(out mute);
+                return mute;
             }
-            foreach (var item in cmProcs)
+            set
             {
-                sessions.Add(new AudioSession()
-                {
-                    AppName = item.Value,
-                    ProcessID = item.Key,
-                    SessionType = SessionTypeEnum.COMMUNICATION,
-                    audioSessionEvent = new AudioSessionEvents()
-                    {
-                        OnVolumeChanged = audioChanged
-                    }
-                });
+                volumectl.SetMute(value, guid);
             }
-
-            return sessions;
         }
 
-        private AudioSessionEvents audioSessionEvent;
-        private IAudioSessionControl2 __session;
-        private bool isActive;
-    }
+        public void Dispose()
+        {
+            OnDisposed?.Invoke(this);
 
-    internal class AudioSessionEvents : IAudioSessionEvents
-    {
-        public Func<int> OnVolumeChanged { get; set; }
-        public bool IsActive { get; set; } = true;
+            UnregisterSessionNotification();
+            if (ctl != null) Marshal.ReleaseComObject(ctl);
+            if (ctl2 != null) Marshal.ReleaseComObject(ctl2);
+            if (volumectl != null) Marshal.ReleaseComObject(volumectl);
+        }
 
+        private void RegisterSessionNotification()
+        {
+            ctl2.RegisterAudioSessionNotification(this);
+        }
+        private void UnregisterSessionNotification()
+        {
+            ctl2.UnregisterAudioSessionNotification(this);
+        }
+
+        #region ### IAudioSessionEvents implementation ###
+
+        private float lastValue = -1;
         public int OnChannelVolumeChanged(uint channelCount, IntPtr newVolumes, uint channelIndex, ref Guid eventContext)
         {
             return 0;
@@ -121,6 +153,8 @@ namespace VolumeMixer_Lib
 
         public int OnDisplayNameChanged(string displayName, ref Guid eventContext)
         {
+            OnDataChanged?.Invoke(this);
+            Console.WriteLine("OnDisplayNameChanged invoke");
             return 0;
         }
 
@@ -136,15 +170,22 @@ namespace VolumeMixer_Lib
 
         public int OnSessionDisconnected(AudioSessionDisconnectReason disconnectReason)
         {
+           // Console.WriteLine("Session Disconnect invoke");
+          //  this.Dispose();
             return 0;
         }
 
         public int OnSimpleVolumeChanged(float volume, bool isMuted, ref Guid eventContext)
         {
-            if (!IsActive) return 0;
-
-            Console.WriteLine("Volume change detected" + volume);
-            OnVolumeChanged?.Invoke();
+            if (volume != lastValue)
+            {
+                if (eventContext != guid)
+                {
+                    OnDataChanged?.Invoke(this);
+                    Console.WriteLine("OnSimpleVolumeChanged invoke");
+                }
+                lastValue = volume;
+            }
             return 0;
         }
 
@@ -152,5 +193,8 @@ namespace VolumeMixer_Lib
         {
             return 0;
         }
+        #endregion
     }
+
+
 }

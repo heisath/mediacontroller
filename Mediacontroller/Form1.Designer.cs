@@ -69,6 +69,9 @@
             this.notify_btnNixieAus = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.notify_btnBeenden = new System.Windows.Forms.ToolStripMenuItem();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btn_restartEVM = new System.Windows.Forms.Button();
+            this.tb_serialEVM = new System.Windows.Forms.TextBox();
             this.grpNixie.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
@@ -78,6 +81,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.nupNx3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nupNx4)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // Button5
@@ -85,7 +89,7 @@
             this.Button5.Location = new System.Drawing.Point(16, 236);
             this.Button5.Margin = new System.Windows.Forms.Padding(4);
             this.Button5.Name = "Button5";
-            this.Button5.Size = new System.Drawing.Size(316, 28);
+            this.Button5.Size = new System.Drawing.Size(478, 28);
             this.Button5.TabIndex = 9;
             this.Button5.Text = "Hide";
             this.Button5.UseVisualStyleBackColor = true;
@@ -364,7 +368,7 @@
             this.txtComName.Name = "txtComName";
             this.txtComName.Size = new System.Drawing.Size(132, 22);
             this.txtComName.TabIndex = 5;
-            this.txtComName.Text = "COM4";
+            this.txtComName.Text = "COM1";
             // 
             // NixieStartUpTimer
             // 
@@ -467,11 +471,43 @@
             this.notify_btnBeenden.Text = "Beenden";
             this.notify_btnBeenden.Click += new System.EventHandler(this.notify_btnBeenden_Click);
             // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.btn_restartEVM);
+            this.groupBox1.Controls.Add(this.tb_serialEVM);
+            this.groupBox1.Location = new System.Drawing.Point(340, 13);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(154, 201);
+            this.groupBox1.TabIndex = 13;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "ExternalVolumeMixer";
+            // 
+            // btn_restartEVM
+            // 
+            this.btn_restartEVM.Location = new System.Drawing.Point(10, 67);
+            this.btn_restartEVM.Margin = new System.Windows.Forms.Padding(4);
+            this.btn_restartEVM.Name = "btn_restartEVM";
+            this.btn_restartEVM.Size = new System.Drawing.Size(132, 28);
+            this.btn_restartEVM.TabIndex = 8;
+            this.btn_restartEVM.Text = "(Neu)Starten";
+            this.btn_restartEVM.UseVisualStyleBackColor = true;
+            this.btn_restartEVM.Click += new System.EventHandler(this.btn_restartEVM_Click);
+            // 
+            // tb_serialEVM
+            // 
+            this.tb_serialEVM.Location = new System.Drawing.Point(10, 26);
+            this.tb_serialEVM.Margin = new System.Windows.Forms.Padding(4);
+            this.tb_serialEVM.Name = "tb_serialEVM";
+            this.tb_serialEVM.Size = new System.Drawing.Size(132, 22);
+            this.tb_serialEVM.TabIndex = 7;
+            this.tb_serialEVM.Text = "COM2";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(347, 277);
+            this.ClientSize = new System.Drawing.Size(511, 277);
+            this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.grpNixie);
             this.Controls.Add(this.Button5);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
@@ -493,6 +529,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.nupNx3)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nupNx4)).EndInit();
             this.contextMenuStrip1.ResumeLayout(false);
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -537,6 +575,9 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem notify_btnBeenden;
         private System.Windows.Forms.ToolStripMenuItem notify_btnTonKopfhoererH600;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Button btn_restartEVM;
+        private System.Windows.Forms.TextBox tb_serialEVM;
     }
 }
 

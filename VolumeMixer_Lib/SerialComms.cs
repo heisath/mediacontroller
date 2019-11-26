@@ -14,12 +14,12 @@ namespace VolumeMixer_Lib
 
         Thread serviceThread;
         SerialPort serialPort;
-        int processNumber;
+        int[] sessionNo = new int[3];
         List<AudioSession> sessions;
 
-        public void Start()
+        public void Start(string port)
         {
-            SerialPortName = "COM6";
+            SerialPortName = port;
             serviceThread = new Thread(main);
             serviceThread.Start();
         }
@@ -28,10 +28,25 @@ namespace VolumeMixer_Lib
             serviceThread.Abort();
         }
 
-        void main()
+        private void initSessions()
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                sessionNo[i] = 0;
+                NextInSessions(i, 0);
+            }
+            SerialPort_WriteSession();
+        }
+
+        private void main()
         {
 
-            sessions = AudioSession.GetAudioSessions(AudioChanged);
+            sessions = AudioManager.GetAudioSessions();
+            
+            sessions.ForEach((x) =>
+            {
+                x.OnDataChanged += SessionDataChanged;
+            });
 
             while (true)
             {
@@ -50,12 +65,10 @@ namespace VolumeMixer_Lib
                         serialPort.DtrEnable = true;
                         serialPort.RtsEnable = true;
 
-                        processNumber = 0;
-                        SerialPort_WriteSession();
-                        sessions[processNumber].Activate();
+                        initSessions();
                     }
 
-                    List<AudioSession> newSessions = AudioSession.GetAudioSessions(AudioChanged);
+                    List<AudioSession> newSessions = AudioManager.GetAudioSessions();
                     bool changed = false;
 
                     if (newSessions.Count != sessions.Count)
@@ -69,25 +82,32 @@ namespace VolumeMixer_Lib
                     }
                     if (changed)
                     {
-                        // try to retain position
-                        int oldProcId = sessions[processNumber].ProcessID;
-                        AudioSession.SessionTypeEnum sessionType = sessions[processNumber].SessionType;
-                        sessions[processNumber].DeActivate();
+                        for (int i = 0; i < 3; i++)
+                        {
+                            // try to retain position
+                            uint oldProcId = sessions[sessionNo[i]].ProcessID;
+                            AudioSession.SessionTypeEnum sessionType = sessions[sessionNo[i]].SessionType;
 
+                            int newIndex = newSessions.FindIndex((x) => x.ProcessID == oldProcId && x.SessionType == sessionType);
+                            if (newIndex >= 0)
+                            {
+                                sessionNo[i] = newIndex;
+                            }
+                            else
+                            {
+                                sessionNo[i] = 0;
+                            }
+                        }
+
+                        sessions.ForEach((x) => x.Dispose());
                         sessions = newSessions;
+                        sessions.ForEach((x) => x.OnDataChanged += SessionDataChanged);
 
-                        int newIndex = sessions.FindIndex((x) => x.ProcessID == oldProcId && x.SessionType == sessionType);
-                        if (newIndex >= 0)
-                        {
-                            processNumber = newIndex;
-                        }
-                        else
-                        {
-                            processNumber = 0;
-                        }
-
-                        sessions[processNumber].Activate();
                         SerialPort_WriteSession();
+                    }
+                    else
+                    {
+                        newSessions.ForEach((x) => x.Dispose());
                     }
 
 
@@ -106,8 +126,11 @@ namespace VolumeMixer_Lib
             }
 
             serialPort.Close();
+            serialPort.Dispose();
             Console.WriteLine("Service died");
         }
+
+      
 
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
@@ -118,33 +141,39 @@ namespace VolumeMixer_Lib
                     string line = serialPort.ReadLine().Trim();
                     if (line.Contains("PAGE"))
                     {
-                        sessions[processNumber].DeActivate();
-                        if (line == ": NEXT_PAGE")
-                        {
-                            processNumber++;
-                        }
-                        else if (line == ": PREV_PAGE")
-                        {
-                            processNumber--;
-                        }
+                        string[] parts = line.Split(':');
+                        int index = Convert.ToInt32(parts[2]);
                         
-                        if (processNumber >= sessions.Count) processNumber = 0;
-                        if (processNumber < 0) processNumber = sessions.Count - 1;
+                        if (parts[1] == "NEXT_PAGE")
+                        {
+                            NextInSessions(index, 1);
+                        }
+                        else if (parts[1] == "PREV_PAGE")
+                        {
+                            NextInSessions(index, -1);
+                        }
 
-                        sessions[processNumber].Activate();
-                        SerialPort_WriteSession();
+                        SerialPort_WriteSession(index);
                     }
-                    else if (line.StartsWith(": VOL"))
+                    else if (line.StartsWith(":VOL"))
                     {
-                        sessions[processNumber].Volume = Convert.ToSingle(line.Replace(": VOL", ""));
+                        string[] parts = line.Replace(":VOL", "").Split(':');
+                        int index = Convert.ToInt32(parts[0]);
+                        float level = Convert.ToSingle(parts[1]);
+                        sessions[sessionNo[index]].Volume = level;
+
+                        SerialPort_WriteSession(index,true );
                     }
-                    else if (line == ": RES_VOL")
+                    else if (line.StartsWith(":RES_VOL"))
                     {
-                        if (sessions[processNumber].Volume > 50)
-                            sessions[processNumber].Volume = 0;
-                        else if (sessions[processNumber].Volume < 50)
-                            sessions[processNumber].Volume = 100;
-                        SerialPort_WriteSession();
+                        int index = Convert.ToInt32(line.Replace(":RES_VOL", ""));
+
+                        if (sessions[sessionNo[index]].Volume > 50)
+                            sessions[sessionNo[index]].Volume = 0;
+                        else if (sessions[sessionNo[index]].Volume < 50)
+                            sessions[sessionNo[index]].Volume = 100;
+
+                        SessionDataChanged(sessions[sessionNo[index]]);
                     }
                 }
             }
@@ -157,15 +186,69 @@ namespace VolumeMixer_Lib
             }
         }
 
-        private int AudioChanged()
+        private void NextInSessions(int index, int dir)
         {
-            SerialPort_WriteSession();
-            return 0;
+            if (dir == 0)
+            {
+                if (index == 2)
+                {
+                    while (sessions[sessionNo[index]].SessionType != AudioSession.SessionTypeEnum.COMMUNICATION)
+                    {
+                        sessionNo[index] += 1;
+                        if (sessionNo[index] >= sessions.Count) sessionNo[index] = 0;
+                        if (sessionNo[index] < 0) sessionNo[index] = sessions.Count - 1;
+                    }
+                }
+                else
+                {
+                    return;
+                }
+            }
+            while (true)
+            {
+                sessionNo[index] += dir;
+                if (sessionNo[index] >= sessions.Count) sessionNo[index] = 0;
+                if (sessionNo[index] < 0) sessionNo[index] = sessions.Count - 1;
+
+                if (index == 2)
+                {
+                    if (sessions[sessionNo[index]].SessionType == AudioSession.SessionTypeEnum.COMMUNICATION) break;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
         }
 
-        private void SerialPort_WriteSession()
+        private void SessionDataChanged(AudioSession sender)
         {
-            serialPort.WriteLine((int)sessions[processNumber].SessionType + ":" + (int)sessions[processNumber].Volume + ":" + sessions[processNumber].AppNameShort);
+            for (int i = 0; i < 3; i++)
+            {
+                if (sessions[sessionNo[i]] == sender)
+                    SerialPort_WriteSession(i);
+            }
+        }
+
+        private void SerialPort_WriteSession(int index = -1, bool all_except = false)
+        {
+            if (index < 0 || all_except)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+
+                    int t = sessionNo[i];
+
+                    if (index == -1 || (t == sessionNo[index] && i != index))
+                        serialPort.WriteLine(i + ":" + (int)sessions[t].SessionType + ":" + (int)sessions[t].Volume + ":" + sessions[t].AppNameShort);
+                }
+            }
+            else
+            {
+                int t = sessionNo[index];
+                serialPort.WriteLine(index + ":" + (int)sessions[t].SessionType + ":" + (int)sessions[t].Volume + ":" + sessions[t].AppNameShort);
+            }
 
         }
     }

@@ -34,7 +34,7 @@ namespace Mediacontroller
             };
 
             serialComms = new SerialComms();
-            serialComms.Start();
+            serialComms.Start(tb_serialEVM.Text);
 
         }
 
@@ -176,6 +176,12 @@ namespace Mediacontroller
             psi.Arguments = "setdefaultsounddevice \"G935 Mic\" 2";
             Process.Start(psi);
 
+        }
+
+        private void btn_restartEVM_Click(object sender, EventArgs e)
+        {
+            serialComms.Stop();
+            serialComms.Start(tb_serialEVM.Text);
         }
     }
 }
