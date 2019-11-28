@@ -14,7 +14,7 @@ using VolumeMixer_Lib;
 
 namespace Mediacontroller
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
       
         string workDir = Environment.CurrentDirectory;
@@ -22,7 +22,7 @@ namespace Mediacontroller
         VolumeMixer serialComms;
         Nixie nixie;
 
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
 

@@ -1,6 +1,6 @@
 ﻿namespace Mediacontroller
 {
-    partial class Form1
+    partial class MainForm
     {
         /// <summary>
         /// Erforderliche Designervariable.
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.Button5 = new System.Windows.Forms.Button();
             this.StartUpTimer = new System.Windows.Forms.Timer(this.components);
             this.grpNixie = new System.Windows.Forms.GroupBox();
