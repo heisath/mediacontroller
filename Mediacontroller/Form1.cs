@@ -19,7 +19,7 @@ namespace Mediacontroller
       
         string workDir = Environment.CurrentDirectory;
         ProcessStartInfo psi;
-        SerialComms serialComms;
+        VolumeMixer serialComms;
         Nixie nixie;
 
         public Form1()
@@ -33,8 +33,23 @@ namespace Mediacontroller
                 WindowStyle = ProcessWindowStyle.Hidden
             };
 
-            serialComms = new SerialComms();
+            serialComms = new VolumeMixer();
             serialComms.Start(tb_serialEVM.Text);
+            serialComms.OnOutputChanged += (x) =>
+            {
+                switch (x)
+                {
+                    case 0:
+                        notify_btnTonGemischt_Click(null, null);
+                        break;
+                    case 1:
+                        notify_btnTonH600_Click(null, null);
+                        break;
+                    case 2:
+                        notify_btnTonG935_Click(null, null);
+                        break;
+                }
+            };
 
         }
 

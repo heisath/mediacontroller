@@ -40,14 +40,12 @@ namespace VolumeMixer_Lib
 
                 // activate the session manager. we need the enumerator
                 Guid IID_IAudioSessionManager2 = typeof(IAudioSessionManager2).GUID;
-                object o;
-                speakers.Activate(IID_IAudioSessionManager2, 0, IntPtr.Zero, out o);
+                speakers.Activate(IID_IAudioSessionManager2, 0, IntPtr.Zero, out object o);
                 mgr = (IAudioSessionManager2)o;
 
                 // enumerate sessions for on this device
                 mgr.GetSessionEnumerator(out sessionEnumerator);
-                int count;
-                sessionEnumerator.GetCount(out count);
+                sessionEnumerator.GetCount(out int count);
 
                 List<AudioSession> results = new List<AudioSession>();
 
@@ -92,8 +90,7 @@ namespace VolumeMixer_Lib
                 if (masterVol == null)
                     return -1;
 
-                float volumeLevel;
-                masterVol.GetMasterVolumeLevelScalar(out volumeLevel);
+                masterVol.GetMasterVolumeLevelScalar(out float volumeLevel);
                 return volumeLevel * 100;
             }
             finally
@@ -117,8 +114,7 @@ namespace VolumeMixer_Lib
                 if (masterVol == null)
                     return false;
 
-                bool isMuted;
-                masterVol.GetMute(out isMuted);
+                masterVol.GetMute(out bool isMuted);
                 return isMuted;
             }
             finally
@@ -168,8 +164,7 @@ namespace VolumeMixer_Lib
                 float stepAmountScaled = stepAmount / 100;
 
                 // Get the level
-                float volumeLevel;
-                masterVol.GetMasterVolumeLevelScalar(out volumeLevel);
+                masterVol.GetMasterVolumeLevelScalar(out float volumeLevel);
 
                 // Calculate the new level
                 float newLevel = volumeLevel + stepAmountScaled;
@@ -223,8 +218,7 @@ namespace VolumeMixer_Lib
                 if (masterVol == null)
                     return false;
 
-                bool isMuted;
-                masterVol.GetMute(out isMuted);
+                masterVol.GetMute(out bool isMuted);
                 masterVol.SetMute(!isMuted, Guid.Empty);
 
                 return !isMuted;
@@ -246,8 +240,7 @@ namespace VolumeMixer_Lib
                 deviceEnumerator.GetDefaultAudioEndpoint(EDataFlow.eRender, role, out speakers);
 
                 Guid IID_IAudioEndpointVolume = typeof(IAudioEndpointVolume).GUID;
-                object o;
-                speakers.Activate(IID_IAudioEndpointVolume, 0, IntPtr.Zero, out o);
+                speakers.Activate(IID_IAudioEndpointVolume, 0, IntPtr.Zero, out object o);
                 IAudioEndpointVolume masterVol = (IAudioEndpointVolume)o;
 
                 return masterVol;

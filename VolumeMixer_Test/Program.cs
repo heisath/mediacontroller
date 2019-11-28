@@ -11,7 +11,7 @@ namespace VolumeMixer_Test
     {
         static void Main(string[] args)
         {
-            SerialComms serialComms = new SerialComms();
+            VolumeMixer serialComms = new VolumeMixer();
             serialComms.Start();
             Console.WriteLine("Any key...");
             Console.ReadLine();

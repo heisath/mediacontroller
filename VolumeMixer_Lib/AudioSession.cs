@@ -12,10 +12,9 @@ namespace VolumeMixer_Lib
 {
     public class AudioSession : IDisposable, IAudioSessionEvents
     {
-        private IAudioSessionControl ctl;
-        private IAudioSessionControl2 ctl2;
-        private ISimpleAudioVolume volumectl;
-        private ERole role;
+        private readonly IAudioSessionControl2 ctl2;
+        private readonly ISimpleAudioVolume volumectl;
+        private readonly ERole role;
 
         public delegate void DataChangedHandler(AudioSession sender);
         public event DataChangedHandler OnDataChanged;
@@ -27,7 +26,6 @@ namespace VolumeMixer_Lib
 
         public AudioSession(IAudioSessionControl ctl, ERole role)
         {
-            this.ctl = ctl;
             this.ctl2 = ctl as IAudioSessionControl2;
             this.volumectl = ctl as ISimpleAudioVolume;
             this.role = role;
@@ -39,8 +37,7 @@ namespace VolumeMixer_Lib
         {
             get
             {
-                uint cpid;
-                ctl2.GetProcessId(out cpid);
+                ctl2.GetProcessId(out uint cpid);
                 return cpid;
             }
         }
@@ -49,8 +46,7 @@ namespace VolumeMixer_Lib
         {
             get
             {
-                string appname;
-                ctl.GetDisplayName(out appname);
+                ctl2.GetDisplayName(out string appname);
 
                 if (appname == "")
                 {
@@ -80,6 +76,30 @@ namespace VolumeMixer_Lib
             COMMUNICATION = 2
         }
 
+        public bool IsActive
+        {
+            get
+            {
+                //otherwise compare file description of executable
+                try
+                {
+
+                    GetWindowThreadProcessId(GetForegroundWindow(), out int fwnd_pid);
+                    if (fwnd_pid == ProcessID) return true; // Procid fits perfect -> return true
+
+                    if (ProcessID == 0) return false;
+                    var processOwn = Process.GetProcessById((int)ProcessID).MainModule.FileVersionInfo.FileDescription;
+                    var processForeground = Process.GetProcessById(fwnd_pid).MainModule.FileVersionInfo.FileDescription;
+                    return processOwn == processForeground;
+                }
+                catch(Exception)
+                {
+                    return false;
+                }
+
+            }
+        }
+
         public SessionTypeEnum SessionType
         {
             get
@@ -100,8 +120,7 @@ namespace VolumeMixer_Lib
         {
             get
             {
-                float level;
-                volumectl.GetMasterVolume(out level);
+                volumectl.GetMasterVolume(out float level);
                 return level * 100;
             }
             set
@@ -114,8 +133,7 @@ namespace VolumeMixer_Lib
         {
             get
             {
-                bool mute;
-                volumectl.GetMute(out mute);
+                volumectl.GetMute(out bool mute);
                 return mute;
             }
             set
@@ -129,7 +147,6 @@ namespace VolumeMixer_Lib
             OnDisposed?.Invoke(this);
 
             UnregisterSessionNotification();
-            if (ctl != null) Marshal.ReleaseComObject(ctl);
             if (ctl2 != null) Marshal.ReleaseComObject(ctl2);
             if (volumectl != null) Marshal.ReleaseComObject(volumectl);
         }
@@ -142,6 +159,12 @@ namespace VolumeMixer_Lib
         {
             ctl2.UnregisterAudioSessionNotification(this);
         }
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
 
         #region ### IAudioSessionEvents implementation ###
 

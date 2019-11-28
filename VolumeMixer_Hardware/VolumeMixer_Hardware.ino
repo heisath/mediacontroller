@@ -10,8 +10,6 @@
 #include <XPT2046_Touchscreen.h>
 #include <SPI.h>
 
-// For the Adafruit shield, these are the default.
-
 #define TFT_DC A3
 #define TFT_RS A2
 #define TFT_CS A1
@@ -24,14 +22,16 @@ public:
 	uint8_t value;
 };
 
-// Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
+// Use hardware SPI and the above for CS/DC
 Adafruit_ILI9341 display = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RS);
 XPT2046_Touchscreen ts(CS_PIN);
 Input input_re;
 Page pages[3];
 Page oldpages[3];
 
-const int rowheight = 80;
+int selected_output_config = 0;
+
+const int rowheight = 60;
 const int offset = 16;
 
 void predraw() {
@@ -40,9 +40,12 @@ void predraw() {
 		display.drawRect(9, offset + 24 + i * rowheight, 302, 10, ILI9341_WHITE);
 		display.setCursor(0, offset + i * rowheight);
 		display.print((char)17);
-		display.setCursor(300, offset + i * rowheight);
+		display.setCursor(310, offset + i * rowheight);
 		display.print((char)16);
 	}
+
+	display.setCursor(10,offset + 3 * rowheight + 5);
+	display.print("Mixed      H600      G935");
 	
 }
 
@@ -69,6 +72,24 @@ void redraw(int i = -1, int v_only = 0) {
 	display.fillRect(10 + page->value*3, offset + 24 + i * rowheight + 1, 300 - page->value*3, 8, ILI9341_BLACK);
 }
 
+void drawMarker() {
+	display.fillRect(10, offset + 3 * rowheight + 5, 300, 15, ILI9341_BLACK);
+	display.setCursor(10, offset + 3 * rowheight + 5);
+	
+	switch (selected_output_config)
+	{
+	case 0:
+		display.print(">Mixed<    H600     G935");
+		break;
+	case 1:
+		display.print(" Mixed    >H600<    G935");
+		break;
+	case 2:
+		display.print(" Mixed     H600    >G935<");
+		break;
+	}
+	
+}
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -87,6 +108,8 @@ void setup() {
 	predraw();
 	redraw(-1);
 
+	drawMarker();
+
 	// Init Rotary Encoder
 	input_re.init();
 
@@ -100,24 +123,32 @@ void loop() {
 	Page* page;
 	while (Serial.available() > 0) {
 		String nr = Serial.readStringUntil(':');
-		String sesType = Serial.readStringUntil(':');
-		String val = Serial.readStringUntil(':');
-		String name = Serial.readStringUntil('\n');
-		
-		int i = atoi(nr.c_str()); 
-		page = (pages + i);
-		if (sesType == "1")
-			sprintf(page->type, "%s", "M:");
-		else if (sesType == "2") 
-			sprintf(page->type, "%s", "C:");
-		else 
-			sprintf(page->type, "%s", "_:");
 
-		memset(page->title, 0, 21);
-		memcpy(page->title, name.c_str(), name.length());
-		page->value = atoi(val.c_str());
+		if (nr == "SET_OUT") {
+			String val = Serial.readStringUntil('\n');
+			selected_output_config = atoi(val.c_str());
+			drawMarker();
+		}
+		else {
+			String sesType = Serial.readStringUntil(':');
+			String val = Serial.readStringUntil(':');
+			String name = Serial.readStringUntil('\n');
 
-		redraw(i);
+			int i = atoi(nr.c_str());
+			page = (pages + i);
+			if (sesType == "1")
+				sprintf(page->type, "%s", "M:");
+			else if (sesType == "2")
+				sprintf(page->type, "%s", "C:");
+			else
+				sprintf(page->type, "%s", "_:");
+
+			memset(page->title, 0, 21);
+			memcpy(page->title, name.c_str(), name.length());
+			page->value = atoi(val.c_str());
+
+			redraw(i);
+		}
 	}
 
 
@@ -133,7 +164,7 @@ void loop() {
 			speed--;
 			if (page->value < 100) {
 				page->value++;
-				Serial.print(":VOL");
+				Serial.print("VOL");
 				Serial.print(i);
 				Serial.print(":");
 				Serial.println(page->value);
@@ -145,7 +176,7 @@ void loop() {
 			speed++;
 			if (page->value > 0) {
 				page->value--;
-				Serial.print(":VOL");
+				Serial.print("VOL");
 				Serial.print(i);
 				Serial.print(":");
 				Serial.println(page->value);
@@ -159,15 +190,15 @@ void loop() {
 		uint8_t inputT = input_re.getTaster();
 
 		if ((inputT & 1 << 0) != 0) {
-			Serial.print(":RES_VOL");
+			Serial.print("RES_VOL");
 			Serial.println(0);
 		}
 		else if ((inputT & 1 << 1) != 0) {
-			Serial.print(":RES_VOL");
+			Serial.print("RES_VOL");
 			Serial.println(1);
 		}
 		else if ((inputT & 1 << 2) != 0) {
-			Serial.print(":RES_VOL");
+			Serial.print("RES_VOL");
 			Serial.println(2);
 		}
 		lastTastCheck = millis();
@@ -176,16 +207,25 @@ void loop() {
 	boolean istouched = ts.touched();
 	if (istouched && (millis() - lastTouched) > 250 ) {
 		TS_Point p = getPoint();
-		int row = p.y / 80;
-		if (p.x < 80) {
-			Serial.print(":PREV_PAGE:");
-			Serial.println(row);
-		}else if (p.x > 240) {
-			Serial.print(":NEXT_PAGE:");
-			Serial.println(row);
+		int row = p.y / 60;
+		if (row < 3) {
+			if (p.x < 80) {
+				Serial.print("PREV_PAGE");
+				Serial.println(row);
+			}
+			else if (p.x > 240) {
+				Serial.print("NEXT_PAGE");
+				Serial.println(row);
+			}
+			else {
+				redraw();
+			}
 		}
 		else {
-			redraw();
+			selected_output_config = p.x / 106;
+			Serial.print("SEL_OUT");
+			Serial.println(selected_output_config);
+			drawMarker();
 		}
 
 		lastTouched = millis();
