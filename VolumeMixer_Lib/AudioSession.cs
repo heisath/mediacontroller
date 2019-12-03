@@ -12,6 +12,11 @@ namespace VolumeMixer_Lib
 {
     public class AudioSession : IDisposable, IAudioSessionEvents
     {
+        readonly double A = -100.0 / 3;
+        readonly double B = 100.0 / 3;
+        readonly double C = Math.Log(16.0);
+
+
         private readonly IAudioSessionControl2 ctl2;
         private readonly ISimpleAudioVolume volumectl;
         private readonly ERole role;
@@ -92,7 +97,7 @@ namespace VolumeMixer_Lib
                     var processForeground = Process.GetProcessById(fwnd_pid).MainModule.FileVersionInfo.FileDescription;
                     return processOwn == processForeground;
                 }
-                catch(Exception)
+                catch (Exception)
                 {
                     return false;
                 }
@@ -121,11 +126,14 @@ namespace VolumeMixer_Lib
             get
             {
                 volumectl.GetMasterVolume(out float level);
-                return level * 100;
+
+                double SliderValue = Math.Log((level * 500.0 - A) / B) / C;
+                return (float)SliderValue * 100.0F;
             }
             set
             {
-                volumectl.SetMasterVolume(value / 100, guid);
+                double DisplayValue = (A + B * Math.Exp(C * value / 100.0F)) / 500.0;
+                volumectl.SetMasterVolume((float)DisplayValue, guid);
             }
         }
 
@@ -193,8 +201,8 @@ namespace VolumeMixer_Lib
 
         public int OnSessionDisconnected(AudioSessionDisconnectReason disconnectReason)
         {
-           // Console.WriteLine("Session Disconnect invoke");
-          //  this.Dispose();
+            // Console.WriteLine("Session Disconnect invoke");
+            //  this.Dispose();
             return 0;
         }
 
