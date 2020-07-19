@@ -53,7 +53,7 @@ namespace VolumeMixer_Lib
             {
                 ctl2.GetDisplayName(out string appname);
 
-                if (appname == "")
+                if (appname == null || appname == "")
                 {
                     var process = Process.GetProcessById((int)ProcessID);
                     appname = process.MainWindowTitle;
@@ -64,12 +64,12 @@ namespace VolumeMixer_Lib
                     }
                 }
 
-                if (appname.Contains(@"@%SystemRoot%\System32\AudioSrv.Dll"))
+                if (appname != null && appname.Contains(@"@%SystemRoot%\System32\AudioSrv.Dll"))
                 {
                     appname = "System";
                 }
 
-                return appname;
+                return appname ?? "";
             }
         }
         public string AppNameShort { get => AppName.Substring(0, Math.Min(AppName.Length, 20)); }
@@ -153,10 +153,13 @@ namespace VolumeMixer_Lib
         public void Dispose()
         {
             OnDisposed?.Invoke(this);
-
-            UnregisterSessionNotification();
-            if (ctl2 != null) Marshal.ReleaseComObject(ctl2);
-            if (volumectl != null) Marshal.ReleaseComObject(volumectl);
+            try
+            {
+                UnregisterSessionNotification();
+                if (ctl2 != null) Marshal.ReleaseComObject(ctl2);
+                if (volumectl != null) Marshal.ReleaseComObject(volumectl);
+            }
+            catch (Exception) { }
         }
 
         private void RegisterSessionNotification()
@@ -184,9 +187,12 @@ namespace VolumeMixer_Lib
 
         public int OnDisplayNameChanged(string displayName, ref Guid eventContext)
         {
-            OnDataChanged?.Invoke(this);
-            Console.WriteLine("OnDisplayNameChanged invoke");
-            return 0;
+             try
+             {
+                OnDataChanged?.Invoke(this);
+                Console.WriteLine("OnDisplayNameChanged invoke");
+                return 0;
+             } catch(Exception) { }
         }
 
         public int OnGroupingParamChanged(ref Guid groupingId, ref Guid eventContext)
@@ -212,8 +218,11 @@ namespace VolumeMixer_Lib
             {
                 if (eventContext != guid)
                 {
-                    OnDataChanged?.Invoke(this);
-                    Console.WriteLine("OnSimpleVolumeChanged invoke");
+                    try
+                    {
+                        OnDataChanged?.Invoke(this);
+                        Console.WriteLine("OnSimpleVolumeChanged invoke");
+                    } catch(Exception) { }
                 }
                 lastValue = volume;
             }

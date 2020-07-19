@@ -137,6 +137,14 @@ namespace VolumeMixer_Lib
                     // clean up then exit
                     break;
                 }
+                catch (System.Runtime.InteropServices.InvalidComObjectException )
+                {
+                    sessions.ForEach((x) => x.Dispose());
+                    sessions = AudioManager.GetAudioSessions();
+                    InitSessions();
+
+                    break;
+                }
                 catch (System.IO.IOException)
                 {
                     if (recon_counter > 5) break;
@@ -246,7 +254,7 @@ namespace VolumeMixer_Lib
                 switch (index)
                 {
                     case 0:
-                        if (sessions[sessionNo[index]].IsActive) return;
+                        if (sessions[sessionNo[index]].SessionType == AudioSession.SessionTypeEnum.MUTLIMEDIA && sessions[sessionNo[index]].IsActive) return;
                         break;
                     case 1:
                         return;
