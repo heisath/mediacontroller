@@ -187,12 +187,12 @@ namespace VolumeMixer_Lib
 
         public int OnDisplayNameChanged(string displayName, ref Guid eventContext)
         {
-             try
-             {
+            try
+            {
                 OnDataChanged?.Invoke(this);
                 Console.WriteLine("OnDisplayNameChanged invoke");
-                return 0;
-             } catch(Exception) { }
+            } catch(Exception) { }
+            return 0;
         }
 
         public int OnGroupingParamChanged(ref Guid groupingId, ref Guid eventContext)
