@@ -1,4 +1,4 @@
-#include "Input.h"
+#include "RotaryInput.h"
 
 
 
@@ -34,7 +34,7 @@ volatile uint8_t _re_taster;
 
 
 
-void Input::init() {
+void RotaryInput::Init() {
 
 
 	pinMode(PIN_RE_A, INPUT_PULLUP);
@@ -77,7 +77,7 @@ void Input::init() {
 	}
 }
 
-void Input::update() {
+void RotaryInput::Update() {
 
 	int32_t newPos[3];
 	newPos[0] = _re_position1 / 2;
@@ -99,22 +99,22 @@ void Input::update() {
 
 }
 
-uint8_t Input::getTaster() {
+uint8_t RotaryInput::GetButton() {
 	uint8_t a = _taster;
 	_taster = 0;
 	_re_taster = 0;
 	return a;
 }
 
-int8_t Input::getLastDirection(uint8_t index) {
+int8_t RotaryInput::GetLastDirection(uint8_t index) {
 	int8_t a = _lastDirection[index];
 	_lastDirection[index] = 0;
 	return a;
 }
-int32_t Input::getPosition(uint8_t index) {
+int32_t RotaryInput::GetPosition(uint8_t index) {
 	return _position[index];
 }
-int32_t Input::getLastSpeed(uint8_t index) {
+int32_t RotaryInput::GetLastSpeed(uint8_t index) {
 	int32_t a = _speed[index];
 	_speed[index] = 0;
 	return a;

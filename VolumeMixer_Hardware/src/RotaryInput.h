@@ -1,6 +1,6 @@
 #include "arduino.h"
 
-class Input {
+class RotaryInput {
 private:
 	int8_t _lastDirection[3];
 	int32_t _position[3];
@@ -8,12 +8,12 @@ private:
 	int32_t _speed[3];
 
 public:
-	void init();
-	void update();
-	int32_t getPosition(uint8_t);
-	int8_t getLastDirection(uint8_t);
-	uint8_t getTaster();
-	int32_t getLastSpeed(uint8_t);
+	void Init();
+	void Update();
+	int32_t GetPosition(uint8_t);
+	int8_t GetLastDirection(uint8_t);
+	uint8_t GetButton();
+	int32_t GetLastSpeed(uint8_t);
 };
 
 void re_isr_impuls0();

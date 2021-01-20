@@ -21,12 +21,18 @@
     <ClInclude Include="__vm\.VolumeMixer_Hardware.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Input.h">
+    <ClInclude Include="VolumeMixer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RotaryInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Input.cpp">
+    <ClCompile Include="VolumeMixer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RotaryInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -55,13 +55,19 @@ namespace VolumeMixer_Lib
 
                 if (appname == null || appname == "")
                 {
-                    var process = Process.GetProcessById((int)ProcessID);
-                    appname = process.MainWindowTitle;
-
-                    if (appname == "")
+                    try
                     {
-                        appname = process.MainModule.FileVersionInfo.FileDescription;
+                        var process = Process.GetProcessById((int)ProcessID);
+                        if (process == null) return "-- ghost --";
+
+                        appname = process.MainWindowTitle;
+
+                        if (appname == "")
+                        {
+                            appname = process.MainModule.FileVersionInfo.FileDescription;
+                        }
                     }
+                    catch (Exception) { }
                 }
 
                 if (appname != null && appname.Contains(@"@%SystemRoot%\System32\AudioSrv.Dll"))
@@ -69,10 +75,23 @@ namespace VolumeMixer_Lib
                     appname = "System";
                 }
 
-                return appname ?? "";
+                return appname ?? "-null-";
             }
         }
-        public string AppNameShort { get => AppName.Substring(0, Math.Min(AppName.Length, 20)); }
+        public string AppNameShort
+        {
+            get
+            {
+                try
+                {
+                    return AppName.Substring(0, Math.Min(AppName.Length, 20));
+                }
+                catch (Exception)
+                {
+                    return "-null-";
+                }
+            }
+        }
 
         public enum SessionTypeEnum
         {
