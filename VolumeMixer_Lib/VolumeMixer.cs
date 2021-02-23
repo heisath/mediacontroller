@@ -20,6 +20,9 @@ namespace VolumeMixer_Lib
         public delegate void OnOutputChangedHandler(int new_output);
         public event OnOutputChangedHandler OnOutputChanged;
 
+        public delegate void OnSoundboardPressHandler(int new_output);
+        public event OnSoundboardPressHandler OnSoundboardPress;
+
         private bool SerialPortReady { get => serialPort != null && serialPort.IsOpen; }
 
         public void Start(string port)
@@ -201,6 +204,11 @@ namespace VolumeMixer_Lib
                     {
                         int out_index = Convert.ToInt32(line.Replace("SEL_OUT", ""));
                         OnOutputChanged?.Invoke(out_index);
+                    }
+                    else if (line.StartsWith("SB_PRESS"))
+                    {
+                        int sb_index = Convert.ToInt32(line.Replace("SB_PRESS", ""));
+                        OnSoundboardPress?.Invoke(sb_index);
                     }
                 }
             }

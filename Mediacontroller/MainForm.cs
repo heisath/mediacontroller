@@ -16,7 +16,11 @@ namespace Mediacontroller
 {
     public partial class MainForm : Form
     {
-      
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+        public static extern void keybd_event(uint bVk, uint bScan, uint dwFlags, uint dwExtraInfo);
+
+
         string workDir = Environment.CurrentDirectory;
         ProcessStartInfo psi;
         VolumeMixer serialComms;
@@ -50,7 +54,44 @@ namespace Mediacontroller
                         break;
                 }
             };
+            serialComms.OnSoundboardPress += (x) =>
+            {
+                const uint VK_NUMPAD0 = 0x60, VK_DIVIDE = 0x6F, VK_MULTIPLY = 0x6A, VK_SUBTRACT = 0x6D, VK_ADD = 0x6B, VK_RETURN = 0x0D, KEYEVENTF_EXTENDEDKEY = 0x01, KEYEVENTF_KEYUP = 0x02;
+                const uint VK_LCONTROL = 0xA2, VK_RCONTROL = 0xA3, VK_LMENU = 0xA4;
 
+
+                keybd_event(VK_LCONTROL, 0, 0, 0);
+                keybd_event(VK_RCONTROL, 0, KEYEVENTF_EXTENDEDKEY, 0);
+
+                
+                switch (x)
+                {
+                    case 10:
+                        keybd_event(VK_DIVIDE, 0, KEYEVENTF_EXTENDEDKEY, 0); 
+                        keybd_event(VK_DIVIDE, 0, KEYEVENTF_EXTENDEDKEY |KEYEVENTF_KEYUP, 0); break;
+                    case 11:
+                        keybd_event(VK_MULTIPLY, 0, KEYEVENTF_EXTENDEDKEY, 0); 
+                        keybd_event(VK_MULTIPLY, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); break;
+                    case 12:
+                        keybd_event(VK_SUBTRACT, 0, KEYEVENTF_EXTENDEDKEY, 0); 
+                        keybd_event(VK_SUBTRACT, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); break;
+                    case 13:
+                        keybd_event(VK_ADD, 0, KEYEVENTF_EXTENDEDKEY, 0); 
+                        keybd_event(VK_ADD, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); break;
+                    case 14:
+                        keybd_event(VK_RETURN, 0, KEYEVENTF_EXTENDEDKEY, 0);
+                        keybd_event(VK_RETURN, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0); break;
+                    default:
+                        keybd_event((uint)(VK_NUMPAD0 + x), 0, 0, 0); 
+                        keybd_event((uint)(VK_NUMPAD0 + x), 0, KEYEVENTF_KEYUP, 0);
+                        break;
+                }
+                
+              //  Thread.Sleep(100);
+                keybd_event(VK_LCONTROL, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_RCONTROL, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+
+            };
         }
 
 
