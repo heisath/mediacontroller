@@ -37,12 +37,12 @@ namespace VolumeMixer_Lib
                 // get the speakers (1st render + multimedia) device
                 deviceEnumerator = (IMMDeviceEnumerator)(new MMDeviceEnumerator());
                 deviceEnumerator.GetDefaultAudioEndpoint(EDataFlow.eRender, currentRole, out speakers);
-
+                
                 // activate the session manager. we need the enumerator
                 Guid IID_IAudioSessionManager2 = typeof(IAudioSessionManager2).GUID;
                 speakers.Activate(IID_IAudioSessionManager2, 0, IntPtr.Zero, out object o);
                 mgr = (IAudioSessionManager2)o;
-
+                
                 // enumerate sessions for on this device
                 mgr.GetSessionEnumerator(out sessionEnumerator);
                 sessionEnumerator.GetCount(out int count);
